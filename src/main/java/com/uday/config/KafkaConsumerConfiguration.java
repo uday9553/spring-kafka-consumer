@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -16,6 +16,10 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.retry.backoff.FixedBackOffPolicy;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.util.backoff.FixedBackOff;
 
 import com.uday.model.Employee;
 
@@ -37,7 +41,21 @@ public class KafkaConsumerConfiguration {
 	public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(){
 		ConcurrentKafkaListenerContainerFactory<String,String> factory=new ConcurrentKafkaListenerContainerFactory<String, String>();
 		factory.setConsumerFactory(consumerFactory());
+		factory.setRetryTemplate(retryTemplate());
+		
 		return factory;
+	}
+	
+	@Bean
+	public RetryTemplate retryTemplate() {
+		RetryTemplate retryTemplate=new RetryTemplate();
+		FixedBackOffPolicy backOffPolicy=new FixedBackOffPolicy();
+		backOffPolicy.setBackOffPeriod(3000);
+		retryTemplate.setBackOffPolicy(backOffPolicy);
+		SimpleRetryPolicy simpleRetryPolicy=new SimpleRetryPolicy();
+		simpleRetryPolicy.setMaxAttempts(3);
+		retryTemplate.setRetryPolicy(simpleRetryPolicy);
+		return retryTemplate;
 	}
 	
 	@Bean
@@ -56,6 +74,7 @@ public class KafkaConsumerConfiguration {
 	public ConcurrentKafkaListenerContainerFactory<String, Employee> employeekafkaListenerContainerFactory(){
 		ConcurrentKafkaListenerContainerFactory<String,Employee> factory=new ConcurrentKafkaListenerContainerFactory<>();
 		factory.setConsumerFactory(employeeConsumerFactory());
+		factory.setRetryTemplate(retryTemplate());
 		return factory;
 	}
 
